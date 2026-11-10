@@ -1,0 +1,18 @@
+{
+  "name": "kantor-ai",
+  "version": "0.1.0",
+  "description": "Prototype kantor virtual dengan agen dokumen",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "acorn": "^8.15.0",
+    "docx": "^9.15.0",
+    "exceljs": "^4.4.0",
+    "express": "^4.19.2",
+    "fast-formula-parser": "^1.0.19",
+    "multer": "^1.4.5-lts.1"
+  }
+}

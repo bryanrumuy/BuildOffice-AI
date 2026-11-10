@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0d1a2b">
+<title>Kantor AI</title>
+<link rel="stylesheet" href="/style.css">
+<script>
+/* Ukuran tampilan: otomatis menurut lebar layar, bisa diubah dengan tombol A- / A+ (tersimpan di browser ini). Dipasang di awal agar tidak berkedip. */
+const SKALA = [0.9, 1, 1.1, 1.2, 1.35, 1.5, 1.7];
+function skalaSekarang() { try { const v = Number(localStorage.getItem('kantorSkala')); if (SKALA.includes(v)) return v; } catch { /* penyimpanan dimatikan */ } const w = innerWidth; return w >= 2200 ? 1.35 : w >= 1800 ? 1.2 : w >= 1450 ? 1.1 : 1; }
+function setSkala(v) { document.documentElement.style.setProperty('--skala', v); try { localStorage.setItem('kantorSkala', String(v)); } catch { /* abaikan */ } dispatchEvent(new Event('resize')); }
+document.documentElement.style.setProperty('--skala', skalaSekarang());
+</script>
+</head>
+<body>
+
+<div id="login" class="hide">
+  <form id="loginForm">
+    <h2 style="margin:0">Kantor AI</h2>
+    <div class="muted">Masuk untuk membuka kantor.</div>
+    <input id="lu" placeholder="Nama pengguna" autocomplete="username" required aria-label="Nama pengguna">
+    <input id="lp" type="password" placeholder="Sandi" autocomplete="current-password" required aria-label="Sandi">
+    <button class="btn primary" type="submit">Masuk</button>
+    <div class="err" id="lerr" role="alert"></div>
+  </form>
+</div>
+
+<header>
+  <h1><span id="kantorName">Kantor AI</span><small>Kantor virtual, dikelola agen AI</small></h1>
+  <span class="chip" id="modeBadge">…</span>
+  <span class="chip" id="userBadge"></span>
+  <span class="zoomctl" role="group" aria-label="Ukuran tampilan"><button class="btn small" id="skalaKecil" type="button" title="Perkecil tampilan" aria-label="Perkecil tampilan">A−</button><button class="btn small" id="skalaBesar" type="button" title="Perbesar tampilan" aria-label="Perbesar tampilan">A+</button></span>
+  <button class="btn" id="logout">Keluar</button>
+</header>
+<nav id="tabs" aria-label="Menu utama">
+  <button data-tab="beranda" class="on">Beranda</button>
+  <button data-tab="dokumen">Dokumen <span class="count hide">0</span></button>
+  <button data-tab="keuangan">Keuangan <span class="count hide">0</span></button>
+  <button data-tab="proyek">Proyek <span class="count hide">0</span></button>
+  <button data-tab="tugas">Tugas <span class="count hide">0</span></button>
+  <button data-tab="laporan">Laporan</button>
+  <button data-tab="tanya">Tanya & Perintah</button>
+  <button class="need-admin" data-tab="pengaturan">Pengaturan</button>
+</nav>
+
+<main>
+  <section id="tab-beranda" class="stack">
+    <div class="office-wrap">
+      <div class="office-col">
+        <div class="office-bar" id="officeBar" role="toolbar" aria-label="Ruangan dan tampilan kantor"></div>
+        <div class="office" id="office"><canvas id="cv" width="480" height="320" role="img" aria-label="Kantor pixel dengan empat belas ruangan; agen AI bekerja, berjalan, dan mengobrol"></canvas></div>
+        <div class="office-hint muted">Pilih ruangan di atas untuk memfokuskan kamera, ⟲ ⟳ untuk memutar arah pandang.</div>
+      </div>
+      <div class="side">
+        <div class="card setuju hide" id="panelSetuju"></div>
+        <div class="card need-staf" id="panelBrief"></div>
+        <div class="card">
+          <div class="row between"><h3>Agen per ruangan</h3><div class="row"><button class="btn small primary need-staf" id="rapatBtn">📣 Panggil rapat</button><button class="btn small" id="dayNight" data-night="0">🌙 Malam</button></div></div>
+          <div id="agentList"></div>
+        </div>
+        <div class="card muted">Agen bekerja saat ada dokumen masuk, tugas, atau perintah (dari web atau Telegram). Selain itu semuanya <b>idle</b> dan tidak memakai token.</div>
+      </div>
+    </div>
+    <div class="card hide" id="onboarding">
+      <h3>Mulai dari sini</h3>
+      <ol class="steps">
+        <li>Buka tab <b>Dokumen</b>, unggah foto atau PDF (kontrak, invoice, nota, izin).</li>
+        <li>Agen membaca dan mengisi datanya. Cek isinya, lalu <b>Simpan &amp; verifikasi</b>.</li>
+        <li>Nota dan tagihan otomatis masuk ke tab <b>Keuangan</b>; ringkasannya ada di <b>Laporan</b>.</li>
+        <li>Tanya apa saja di <b>Tanya Kantor</b>.</li>
+      </ol>
+    </div>
+    <div class="stats" id="stats"></div>
+    <div class="visuals" id="visual"></div>
+    <div id="sysHealth"></div>
+    <div class="card" id="rapatCard"><h3>Rapat terakhir</h3><div id="rapatIsi"></div></div>
+    <div class="triple">
+      <div class="card"><h3>Perlu perhatian (≤ 30 hari)</h3><div id="mendesak"></div></div>
+      <div class="card"><h3>Obrolan kantor</h3><div id="obrolan" aria-live="polite"></div></div>
+      <div class="card"><h3>Aktivitas terakhir</h3><div id="aktivitas"></div></div>
+    </div>
+  </section>
+
+  <section id="tab-dokumen" class="hide stack">
+    <div class="drop need-staf" id="drop" role="button" tabindex="0">Seret file ke sini, atau klik untuk memilih<br><span class="muted">PDF, foto (JPG/PNG/WEBP), atau teks · maks 15 MB</span></div>
+    <input type="file" id="file" multiple accept=".pdf,.png,.jpg,.jpeg,.webp,.txt" class="hide" aria-label="Pilih file dokumen">
+    <div class="err" id="uerr" role="alert"></div>
+    <div class="row between"><div class="seg" id="docFilters"></div><input id="docSearch" placeholder="Cari dokumen…" style="max-width:260px" aria-label="Cari dokumen"></div>
+    <div class="stack" id="docs"></div>
+  </section>
+
+  <section id="tab-keuangan" class="hide stack">
+    <div class="seg" id="keuSeg" style="justify-self:start"></div>
+    <div class="stack" id="keuBody"></div>
+  </section>
+
+  <section id="tab-proyek" class="hide stack"><div class="stack" id="proyekBody"></div></section>
+
+  <section id="tab-tugas" class="hide stack"><div class="stack" id="tugasBody"></div></section>
+
+  <section id="tab-laporan" class="hide stack"><div class="stack" id="laporanBody"></div></section>
+
+  <section id="tab-tanya" class="hide stack">
+    <div class="seg" id="tanyaSeg" style="justify-self:start"><button data-mode="tanya" class="on">Tanya cepat</button><button data-mode="perintah">Perintah dengan dokumen</button></div>
+    <div class="stack hide" id="agenBody"></div>
+    <div class="card" id="chatCard">
+      <div class="muted" style="margin-bottom:6px">Bertanya kepada:</div>
+      <div class="chips pick" id="agenPick" style="margin:0 0 10px"></div>
+      <div class="msgs" id="msgs" aria-live="polite"><div class="m a">Tanyakan apa saja soal kantor, atau pilih satu agen di atas untuk bertanya langsung kepadanya (tugasnya, apa yang sedang ia kerjakan, kondisi bidangnya). Jawabannya juga muncul sebagai balon ucapan di kantor.</div></div>
+      <div class="chips" id="chips"></div>
+      <form class="chat-in" id="chatForm"><input id="q" placeholder="Tulis pertanyaan…" maxlength="500" autocomplete="off" aria-label="Pertanyaan"><button class="btn primary">Kirim</button></form>
+    </div>
+  </section>
+
+  <section id="tab-pengaturan" class="hide"><div class="stack" id="settingsBody"></div></section>
+</main>
+
+<dialog id="dlg"><form id="dlgForm"></form></dialog>
+
+<script src="/util.js"></script>
+<script src="/md.js"></script>
+<script src="/pathing.js"></script>
+<script src="/avatars.js"></script>
+<script src="/scene.js"></script>
+<script src="/iso.js"></script>
+<script src="/office.js"></script>
+<script src="/ruangan.js"></script>
+<script src="/docs.js"></script>
+<script src="/finance.js"></script>
+<script src="/proyek.js"></script>
+<script src="/agen.js"></script>
+<script src="/tugas.js"></script>
+<script src="/dashboard.js"></script>
+<script src="/rapat.js"></script>
+<script src="/jadwal.js"></script>
+<script src="/sistem.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>
