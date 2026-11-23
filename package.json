@@ -4,7 +4,8 @@
   "description": "Prototype kantor virtual dengan agen dokumen",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node tests/jalankan-semua.js"
   },
   "license": "MIT",
   "dependencies": {
