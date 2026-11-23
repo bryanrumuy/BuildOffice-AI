@@ -40,7 +40,7 @@ async function jalan(bahasa, port) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bahasa-test-'));
   for (const n of ['server.js', 'package.json']) fs.copyFileSync(path.join(ROOT, n), path.join(dir, n));
   fs.cpSync(path.join(ROOT, 'lib'), path.join(dir, 'lib'), { recursive: true }); fs.cpSync(path.join(ROOT, 'public'), path.join(dir, 'public'), { recursive: true }); fs.mkdirSync(path.join(dir, 'data'));
-  const env = { ...process.env, PORT: String(port), BAHASA: bahasa, OFFICE_USERS: 'uji:sandi-uji-1|admin', NODE_PATH: path.join(ROOT, 'node_modules'), ANTHROPIC_API_KEY: '', OPENAI_API_KEY: '', TELEGRAM_BOT_TOKEN: '', TELEGRAM_CHAT_ID: '' };
+  const env = { ...process.env, PORT: String(port), BAHASA: bahasa, OFFICE_USERS: 'uji:sandi-uji-1|admin', NODE_PATH: require('./bantu/server-sementara').folderModul(), ANTHROPIC_API_KEY: '', OPENAI_API_KEY: '', TELEGRAM_BOT_TOKEN: '', TELEGRAM_CHAT_ID: '' };
   const p = spawn(process.execPath, ['server.js'], { cwd: dir, env, windowsHide: true });
   let log = ''; p.stdout.on('data', (d) => (log += d)); p.stderr.on('data', (d) => (log += d));
   for (let i = 0; i < 60; i++) { try { await fetch('http://127.0.0.1:' + port + '/api/me'); break; } catch { await tunggu(250); } }
